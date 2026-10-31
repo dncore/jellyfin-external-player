@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mock harness — Jellyfin External Player</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --appbar: #1f1f1f;
+    --accent: #00a4dc;
+    --text: #ffffff;
+    --text-2: #b8b8b8;
+    --text-3: #8a8a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ---- blurred backdrop, the way the real client renders fanart ---- */
+  .backdrop {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 560px;
+    background:
+      radial-gradient(900px 420px at 22% 30%, rgba(0,164,220,.30), transparent 70%),
+      radial-gradient(760px 360px at 78% 10%, rgba(230,160,20,.22), transparent 72%),
+      linear-gradient(180deg, #182430 0%, #0d0d0d 100%);
+    filter: blur(28px) saturate(115%);
+    transform: scale(1.08);
+    opacity: .85;
+    pointer-events: none;
+  }
+
+  .skinHeader {
+    position: relative;
+    z-index: 3;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    padding: 0 28px;
+    background: rgba(16,16,16,.55);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    font-size: 15px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: .2px; }
+  .brand .dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: conic-gradient(from 210deg, var(--accent), #7b5cff 60%, var(--accent));
+  }
+  .nav { display: flex; gap: 22px; color: var(--text-2); }
+  .nav span.active { color: var(--text); font-weight: 600; }
+  .header-right { margin-left: auto; display: flex; gap: 16px; color: var(--text-2); align-items: center; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#2d6cdf,#57b7ff); }
+
+  /* ---- detail ribbon ---- */
+  .detailRibbon {
+    position: relative;
+    z-index: 2;
+    padding: 30px 48px 26px;
+    background: linear-gradient(180deg, rgba(10,10,10,.15) 0%, rgba(13,13,13,.88) 78%, var(--bg) 100%);
+  }
+  .infoWrapper { display: flex; gap: 34px; align-items: flex-start; }
+
+  .poster {
+    width: 200px; height: 300px; flex: none;
+    border-radius: 8px;
+    background:
+      radial-gradient(120px 120px at 50% 38%, rgba(255,205,120,.95), rgba(255,160,40,.35) 55%, transparent 72%),
+      linear-gradient(165deg, #24425c 0%, #16283a 45%, #0b1621 100%);
+    box-shadow: 0 14px 40px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.08);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 18px;
+  }
+  .poster .p-title { font-size: 19px; font-weight: 700; line-height: 1.15; text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+  .poster .p-year { font-size: 12px; color: #ffd89b; margin-top: 6px; letter-spacing: 1.4px; }
+
+  .meta { padding-top: 6px; min-width: 0; }
+  .itemName { font-size: 36px; font-weight: 600; margin: 0 0 10px; letter-spacing: -.3px; }
+  .itemMiscInfo {
+    display: flex; align-items: center; gap: 14px;
+    color: var(--text-2); font-size: 15px; margin-bottom: 4px;
+  }
+  .ratingBadge {
+    border: 1px solid #6f6f6f; border-radius: 3px;
+    padding: 0 6px; font-size: 12px; line-height: 18px; color: #ddd;
+  }
+  .star { color: #f5c518; }
+
+  .mainDetailButtons { display: flex; align-items: center; gap: 4px; margin-top: 18px; }
+  .detailButton {
+    width: 48px; height: 48px; border: 0; padding: 0; border-radius: 50%;
+    background: transparent; color: #ececec; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .15s ease;
+  }
+  .detailButton:hover { background: rgba(255,255,255,.12); }
+  .detailButton svg { width: 24px; height: 24px; fill: currentColor; }
+
+  /* ---- body content ---- */
+  .detailSection { padding: 8px 48px 60px; max-width: 1100px; }
+  .detailSection h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--text-2); }
+  .overview { color: var(--text-3); line-height: 1.65; margin: 18px 0 0; font-size: 15px; }
+  .badge-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px; color: var(--text-2);
+    border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 3px 10px;
+  }
+
+  .hint {
+    position: fixed; left: 48px; bottom: 18px; z-index: 5;
+    font-size: 12px; color: #6d6d6d; letter-spacing: .3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="backdrop"></div>
+
+<header class="skinHeader">
+  <div class="brand"><span class="dot"></span>Jellyfin</div>
+  <nav class="nav">
+    <span class="active">Home</span><span>Movies</span><span>Shows</span><span>Playlists</span>
+  </nav>
+  <div class="header-right">
+    <span>◎</span><span>⌕</span><span class="avatar"></span>
+  </div>
+</header>
+
+<div class="detailRibbon">
+  <div class="infoWrapper">
+    <div class="detailImageContainer">
+      <div class="poster">
+        <div class="p-title">THE LANTERN KEEPER</div>
+        <div class="p-year">2019</div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <h1 class="itemName">The Lantern Keeper</h1>
+      <div class="itemMiscInfo">
+        <span>2019</span><span>1h 48m</span>
+        <span class="ratingBadge">PG-13</span>
+        <span class="star">★</span><span>7.8</span>
+        <span>Ends at 21:40</span>
+      </div>
+
+      <div class="mainDetailButtons">
+        <button type="button" class="button-flat btnPlay detailButton emby-button" data-action="resume" title="Resume">
+          <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+        </button>
+        <button type="button" class="button-flat btnReplay detailButton emby-button" data-action="play" title="Play">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button type="button" class="button-flat btnDownload detailButton emby-button" title="Download">
+          <svg viewBox="0 0 24 24"><path d="M12 3v10l3-3 1.4 1.4L12 16l-4.4-4.6L9 10l3 3V3zM5 19h14v2H5z"/></svg>
+        </button>
+        <button type="button" class="button-flat btnPlaystate detailButton emby-button" title="Watched">
+          <svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+        </button>
+        <button type="button" class="button-flat btnUserRating detailButton emby-button" title="Favorite">
+          <svg viewBox="0 0 24 24"><path d="M12 21s-7.2-4.6-9.6-8.3A5.6 5.6 0 0 1 12 6a5.6 5.6 0 0 1 9.6 6.7C19.2 16.4 12 21 12 21z"/></svg>
+        </button>
+        <button type="button" class="button-flat btnMoreCommands detailButton emby-button" title="More">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="detailSection">
+  <h3>Video · 1080p HEVC · SDR</h3>
+  <h3 style="margin-top:14px">Audio · E-AC3 5.1 · English</h3>
+  <p class="overview">
+    A lighthouse keeper on a remote northern coast begins receiving letters addressed to him
+    from a ship that sank forty years earlier. A quiet mystery about memory, tides, and the
+    people we keep waiting for.
+  </p>
+  <div class="badge-row">
+    <span class="tag">mystery</span><span class="tag">slow burn</span>
+    <span class="tag">coastal</span><span class="tag">period drama</span>
+  </div>
+</div>
+
+<div class="hint">Mock data for screenshots — not a real library.</div>
+
+<script>
+/* Minimal stand-in for the Jellyfin web client's global ApiClient.
+   Only the methods this userscript calls are implemented. */
+window.ApiClient = {
+  _user: { Id: 'u-mock-1', Name: 'demo' },
+  _item: {
+    Id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    Type: 'Movie',
+    Name: 'The Lantern Keeper',
+    Container: 'mkv',
+    UserData: { PlaybackPositionTicks: 2450000000 }, // 4m 05s
+    MediaSources: [{
+      Id: 'ms-mock-1',
+      Container: 'mkv',
+      Path: '/media/movies/The.Lantern.Keeper.2019.1080p.BluRay.mkv',
+      MediaStreams: [
+        { Index: 0, Type: 'Video', Codec: 'hevc' },
+        { Index: 1, Type: 'Audio', Codec: 'eac3', Language: 'eng' },
+        { Index: 2, Type: 'Subtitle', Codec: 'srt', IsExternal: true, Language: 'chi', DisplayTitle: 'Chinese (Simplified)' }
+      ]
+    }]
+  },
+  getCurrentUser() { return Promise.resolve(this._user); },
+  getCurrentUserId() { return this._user.Id; },
+  getItem() { return Promise.resolve(this._item); },
+  getItems() { return Promise.resolve({ Items: [] }); },
+  getNextUpEpisodes() { return Promise.resolve({ Items: [] }); },
+  accessToken() { return 'MOCK-TOKEN-NOT-REAL'; },
+  serverAddress() { return 'http://jellyfin.example.lan:8096'; }
+};
+
+/* The userscript only activates on a details route. */
+if (!/^#\/details/.test(location.hash)) {
+  location.hash = '#/details?id=' + window.ApiClient._item.Id;
+}
+</script>
+
+<script src="/jellyfin-external-player.user.js"></script>
+</body>
+</html>

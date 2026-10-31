@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# logs and temp output
+*.log
+.playwright-mcp/
+screenshots-tmp/
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
