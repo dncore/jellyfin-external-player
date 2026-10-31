@@ -36,13 +36,17 @@ Greasy Fork has no publishing API — the upload is manual through the web UI.
 
 1. Sign in at <https://greasyfork.org> with GitHub.
 2. Go to <https://greasyfork.org/scripts/new>.
-3. Choose **Import from URL** and paste the raw file URL:
+3. Choose **Import from URL** and paste the **tag-pinned** raw URL:
 
    ```
-   https://raw.githubusercontent.com/dncore/jellyfin-external-player/main/jellyfin-external-player.user.js
+   https://raw.githubusercontent.com/dncore/jellyfin-external-player/v1.0.0/jellyfin-external-player.user.js
    ```
 
    (Greasy Fork reads `@name`, `@description`, `@version`, `@include` from the header.)
+
+   > Use the tag rather than `main`: `raw.githubusercontent.com` caches branch files for a few
+   > minutes, so right after a release `main` can still serve the previous version. Tag URLs are
+   > immutable and always correct.
 
 4. Add **additional info** — the text in the next section.
 5. Set the script **category** to *Jellyfin* or *Media*, and **license** to MIT.
