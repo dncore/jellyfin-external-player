@@ -67,33 +67,24 @@ writes its own when it publishes, so installs made from Greasy Fork update autom
 A copy installed from the GitHub raw URL will not self-update — reinstall it or paste the new
 version after a release.
 
-## 4. Suggested Greasy Fork listing text
+## 4. Where each piece of the listing lives
 
-**Summary**
+Greasy Fork reads only a fixed set of header keys; everything else lives on the site.
 
-> Adds external player buttons (PotPlayer, VLC, IINA, nPlayer, Infuse, MX Player, mpv) to the
-> Jellyfin item detail page. Plays the original file directly, without transcoding.
+| Content | Source of truth | How it reaches Greasy Fork |
+|---|---|---|
+| Name, summary, version, license, matches | `jellyfin-external-player.user.js` header (`@name`, `@description`, `@version`, `@license`, `@include`) | imported automatically on every publish / update |
+| "Additional info" (the long text on the script page) | `docs/greasyfork-listing.md` | **pasted by hand** — it is a site-side field, never read from the file |
+| Screenshots | `docs/*.png` in this repo | referenced by absolute `https` URLs in the additional info |
+| Source / issue link | `@supportURL` + a line in the additional info | header key is imported; the line is pasted |
+| Category, tags | Greasy Fork edit page | set manually |
 
-**Description**
+`docs/greasyfork-listing.md` holds the exact text to paste, so the listing is versioned next to
+the code and can be diffed. After editing it, copy the block into **Edit script → Additional
+info** on the script page.
 
-```markdown
-Adds one button per available external player to the Jellyfin item detail page, right after the
-native Play button. Clicking a button opens the original file in your own player — direct play,
-no transcoding.
-
-Works with **PotPlayer, VLC, IINA, nPlayer, Infuse, MX Player and mpv**. Only the players that
-exist on your platform are shown (no IINA on Windows, no PotPlayer on macOS).
-
-**Notes**
-
-- Requires Jellyfin 10.8 or newer (uses the `ApiKey` query parameter).
-- URLs are built from the item's media sources; the access token is passed only to your local player.
-- Continuing playback resumes from the stored position where the player supports it.
-- Desktop VLC and mpv need a `vlc://` / `mpv://` protocol handler installed first.
-- No external requests: player icons are inlined in the script.
-
-Source and issue tracker: https://github.com/dncore/jellyfin-external-player
-```
+Updating the script (re-importing the file) refreshes the code and the header keys, but **does
+not** overwrite the additional info — update it by hand when the text changes.
 
 ## 5. Update the README
 
